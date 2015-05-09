@@ -50,39 +50,39 @@ private:
 
 template<int dim>
 CDRProblem<dim>::CDRProblem(const Parameters &parameters) :
-  parameters (parameters),
-  fe (parameters.fe_order),
-  quad (3*(2 + parameters.fe_order)/2)
+  parameters(parameters),
+  fe(parameters.fe_order),
+  quad(3*(2 + parameters.fe_order)/2)
 {
-  const Point<dim> center (true);
-  GridGenerator::hyper_shell (triangulation, center, parameters.inner_radius,
-                              parameters.outer_radius);
+  const Point<dim> center(true);
+  GridGenerator::hyper_shell(triangulation, center, parameters.inner_radius,
+                             parameters.outer_radius);
   dof_handler.initialize(triangulation, fe);
   {
-    CompressedSparsityPattern dynamic_sparsity_pattern (dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern (dof_handler, dynamic_sparsity_pattern);
-    sparsity_pattern.copy_from (dynamic_sparsity_pattern);
+    CompressedSparsityPattern dynamic_sparsity_pattern(dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(dof_handler, dynamic_sparsity_pattern);
+    sparsity_pattern.copy_from(dynamic_sparsity_pattern);
   }
 
-  convection_function.initialize(std::string("x,y"), parameters.expression,
+  convection_function.initialize(std::string("x,y"), parameters.convection_field,
                                  std::map<std::string, double>());
 
   mass_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_mass_matrix (dof_handler, quad, mass_matrix);
-  convection_matrix.reinit (sparsity_pattern);
-  create_convection_matrix (dof_handler, quad, convection_function,
-                            convection_matrix);
-  laplace_matrix.reinit (sparsity_pattern);
-  MatrixCreator::create_laplace_matrix (dof_handler, quad, laplace_matrix);
+  MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
+  convection_matrix.reinit(sparsity_pattern);
+  create_convection_matrix(dof_handler, quad, convection_function,
+                           convection_matrix);
+  laplace_matrix.reinit(sparsity_pattern);
+  MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix);
 }
 
 
-constexpr int dim = 2;
+constexpr int dim {2};
 
 
 int main(int argc, char *argv[])
 {
-  Parameters parameters {1, "exp(x)", 1, 2};
+  Parameters parameters {1.0, 2.0, 1e-4, "exp(x)", 1.0,  1, 2};
   CDRProblem<dim> cdr_problem(parameters);
 
   return 0;
