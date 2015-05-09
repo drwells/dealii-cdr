@@ -5,6 +5,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -std=c++11")
 # Declare all source files the target consists of:
 SET(TARGET_SRC
   ${TARGET}.cc
+  parameters.cc
   )
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
