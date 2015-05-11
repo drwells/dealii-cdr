@@ -19,6 +19,7 @@
 #include <deal.II/lac/sparse_matrix.h>
 
 #include <deal.II/numerics/matrix_tools.h>
+#include <deal.II/numerics/vector_tools.h>
 
 #include "../common/convection.h"
 #include "parameters.h"
@@ -42,6 +43,8 @@ private:
 
   FunctionParser<dim> convection_function;
 
+  ConstraintMatrix constraints;
+
   SparseMatrix<double> mass_matrix;
   SparseMatrix<double> convection_matrix;
   SparseMatrix<double> laplace_matrix;
@@ -58,9 +61,13 @@ CDRProblem<dim>::CDRProblem(const Parameters &parameters) :
   GridGenerator::hyper_shell(triangulation, center, parameters.inner_radius,
                              parameters.outer_radius);
   dof_handler.initialize(triangulation, fe);
+  VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<dim>(),
+                                           constraints);
+  constraints.close();
   {
     CompressedSparsityPattern dynamic_sparsity_pattern(dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(dof_handler, dynamic_sparsity_pattern);
+    DoFTools::make_sparsity_pattern(dof_handler, dynamic_sparsity_pattern,
+                                    constraints, /*keep_constrained_dofs*/false);
     sparsity_pattern.copy_from(dynamic_sparsity_pattern);
   }
 
@@ -68,12 +75,14 @@ CDRProblem<dim>::CDRProblem(const Parameters &parameters) :
                                  std::map<std::string, double>());
 
   mass_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
+  MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix, nullptr,
+                                    constraints);
   convection_matrix.reinit(sparsity_pattern);
   create_convection_matrix(dof_handler, quad, convection_function,
-                           convection_matrix);
+                           convection_matrix, constraints);
   laplace_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix);
+  MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix,
+                                       nullptr, constraints);
 }
 
 
