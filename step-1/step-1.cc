@@ -48,6 +48,9 @@ private:
   SparseMatrix<double> mass_matrix;
   SparseMatrix<double> convection_matrix;
   SparseMatrix<double> laplace_matrix;
+
+  void setup_geometry();
+  void setup_matrices();
 };
 
 
@@ -57,10 +60,24 @@ CDRProblem<dim>::CDRProblem(const Parameters &parameters) :
   fe(parameters.fe_order),
   quad(3*(2 + parameters.fe_order)/2)
 {
+  convection_function.initialize(std::string("x,y"), parameters.convection_field,
+                                 std::map<std::string, double>());
+}
+
+
+template<int dim>
+void CDRProblem<dim>::setup_geometry()
+{
   const Point<dim> center(true);
   GridGenerator::hyper_shell(triangulation, center, parameters.inner_radius,
                              parameters.outer_radius);
   dof_handler.initialize(triangulation, fe);
+}
+
+
+template<int dim>
+void CDRProblem<dim>::setup_matrices()
+{
   VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<dim>(),
                                            constraints);
   constraints.close();
@@ -70,9 +87,6 @@ CDRProblem<dim>::CDRProblem(const Parameters &parameters) :
                                     constraints, /*keep_constrained_dofs*/false);
     sparsity_pattern.copy_from(dynamic_sparsity_pattern);
   }
-
-  convection_function.initialize(std::string("x,y"), parameters.convection_field,
-                                 std::map<std::string, double>());
 
   mass_matrix.reinit(sparsity_pattern);
   MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix, nullptr,
