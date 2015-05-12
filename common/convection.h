@@ -10,10 +10,11 @@ void create_convection_matrix(const DoFHandler<dim>     &dof_handler,
   const auto dofs_per_cell = fe.dofs_per_cell;
   FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
   FEValues<dim> fe_values(fe, quad, update_values | update_gradients |
-                          update_JxW_values);
+                          update_quadrature_points | update_JxW_values);
 
   std::vector<types::global_dof_index> local_indices(dofs_per_cell);
-  std::vector<double> current_convection(dim);
+  Vector<double> current_convection(dim);
+
   for (const auto &cell : dof_handler.active_cell_iterators())
     {
       fe_values.reinit(cell);
@@ -21,7 +22,7 @@ void create_convection_matrix(const DoFHandler<dim>     &dof_handler,
       cell->get_dof_indices(local_indices);
       for (unsigned int q = 0; q < quad.size(); ++q)
         {
-          convection_function.vector_value(fe_values.quadrature_points[q],
+          convection_function.vector_value(fe_values.quadrature_point(q),
                                            current_convection);
           for (unsigned int i = 0; i < dofs_per_cell; ++i)
             {
