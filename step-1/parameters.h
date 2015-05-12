@@ -16,6 +16,8 @@ public:
   double diffusion_coefficient;
   std::string convection_field;
   double reaction_coefficient;
+  std::string forcing;
+  bool time_dependent_forcing;
 
   unsigned int refinement_level;
   unsigned int fe_order;
