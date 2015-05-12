@@ -16,10 +16,12 @@ void Parameters::configure_parameter_handler(ParameterHandler &parameter_handler
     parameter_handler.declare_entry
       ("diffusion_coefficient", "1.0", Patterns::Double(0.0), "Diffusion coefficient.");
     parameter_handler.declare_entry
+      ("convection_field", "(sin(pi/3.0), cos(pi/3.0))", Patterns::Anything(),
+       "Convection field.");
+    parameter_handler.declare_entry
       ("reaction_coefficient", "1.0", Patterns::Double(0.0), "Reaction coefficient.");
     parameter_handler.declare_entry
-      ("expression_field", "(sin(pi/3.0), cos(pi/3.0))", Patterns::Anything(),
-       "Convection field.");
+      ("forcing", "1", Patterns::Anything(), "Forcing function.");
   }
   parameter_handler.leave_subsection();
 
@@ -67,6 +69,8 @@ void Parameters::read_parameter_file(std::string file_name)
 
   diffusion_coefficient = parameter_handler.get_double("diffusion_coefficient");
   reaction_coefficient = parameter_handler.get_double("reaction_coefficient");
+  convection_field = parameter_handler.get("convection_field");
+  forcing = parameter_handler.get("forcing");
 
   refinement_level = parameter_handler.get_integer("refinement_level");
   fe_order = parameter_handler.get_integer("fe_order");
