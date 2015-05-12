@@ -49,6 +49,8 @@ private:
   SparseMatrix<double> convection_matrix;
   SparseMatrix<double> laplace_matrix;
 
+  SparseMatrix<double> system_matrix;
+
   void setup_geometry();
   void setup_matrices();
 };
@@ -97,6 +99,15 @@ void CDRProblem<dim>::setup_matrices()
   laplace_matrix.reinit(sparsity_pattern);
   MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix,
                                        nullptr, constraints);
+  auto time_step = (parameters.stop_time - parameters.start_time)/
+    parameters.n_time_steps;
+  system_matrix.reinit(sparsity_pattern);
+  system_matrix = 0.0;
+  system_matrix.add(1.0, mass_matrix);
+  system_matrix.add(time_step*parameters.diffusion_coefficient/2.0,
+                    laplace_matrix);
+  system_matrix.add(time_step/2.0, convection_matrix);
+  system_matrix.add(time_step*parameters.reaction_coefficient/2.0, mass_matrix);
 }
 
 
