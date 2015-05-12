@@ -105,7 +105,14 @@ constexpr int dim {2};
 
 int main(int argc, char *argv[])
 {
-  Parameters parameters {1.0, 2.0, 1e-4, "exp(x)", 1.0,  1, 2};
+  Parameters parameters
+  {
+    1.0, 2.0,
+    1.0e-4, "exp(x)", 1.0,
+    1, 2,
+    0.0, 1.0, 100,
+    10, 2
+  };
   CDRProblem<dim> cdr_problem(parameters);
 
   return 0;

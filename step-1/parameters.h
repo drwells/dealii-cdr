@@ -20,6 +20,13 @@ public:
   unsigned int refinement_level;
   unsigned int fe_order;
 
+  double start_time;
+  double stop_time;
+  unsigned int n_time_steps;
+
+  unsigned int save_interval;
+  unsigned int patch_level;
+
   void read_parameter_file(std::string file_name);
 private:
   void configure_parameter_handler(ParameterHandler &parameter_handler);
