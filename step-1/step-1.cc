@@ -68,7 +68,6 @@ private:
 
   void setup_geometry();
   void setup_matrices();
-  std::unique_ptr<Vector<double>> make_vector();
   void time_iterate();
 };
 
@@ -170,26 +169,18 @@ void CDRProblem<dim>::setup_matrices()
 
 
 template<int dim>
-std::unique_ptr<Vector<double>> CDRProblem<dim>::make_vector()
-{
-  auto vector = std::make_unique<Vector<double>> (dof_handler.n_dofs());
-  return vector;
-}
-
-
-template<int dim>
 void CDRProblem<dim>::time_iterate()
 {
-  auto current_solution = make_vector();
-  auto previous_solution = make_vector();
+  Vector<double> current_solution(dof_handler.n_dofs());
+  auto previous_solution = current_solution;
+  auto current_forcing = current_solution;
+  auto previous_forcing = current_forcing;
 
-  auto current_forcing = make_vector();
-  auto previous_forcing = make_vector();
   if (!parameters.time_dependent_forcing)
     {
       VectorTools::create_right_hand_side
-        (dof_handler, quad, forcing_function, *current_forcing);
-      *previous_forcing = *current_forcing;
+        (dof_handler, quad, forcing_function, current_forcing);
+      previous_forcing = current_forcing;
     }
 
   Vector<double> right_hand_side(dof_handler.n_dofs());
@@ -210,17 +201,17 @@ void CDRProblem<dim>::time_iterate()
         {
           forcing_function.advance_time(time_step);
           VectorTools::create_right_hand_side
-            (dof_handler, quad, forcing_function, *current_forcing);
+            (dof_handler, quad, forcing_function, current_forcing);
         }
       right_hand_side = 0.0;
-      right_hand_side.add(time_step/2.0, *current_forcing);
-      right_hand_side.add(time_step/2.0, *previous_forcing);
-      right_hand_side_matrix.vmult_add(right_hand_side, *previous_solution);
+      right_hand_side.add(time_step/2.0, current_forcing);
+      right_hand_side.add(time_step/2.0, previous_forcing);
+      right_hand_side_matrix.vmult_add(right_hand_side, previous_solution);
 
-      SolverControl solver_control(current_solution->size(),
+      SolverControl solver_control(current_solution.size(),
                                    1e-6*right_hand_side.l2_norm());
       SolverGMRES<Vector<double>> solver(solver_control);
-      solver.solve(system_matrix, *current_solution, right_hand_side, preconditioner);
+      solver.solve(system_matrix, current_solution, right_hand_side, preconditioner);
 
       if (time_step_n % parameters.save_interval == 0)
         {
@@ -231,7 +222,7 @@ void CDRProblem<dim>::time_iterate()
 
           DataOut<dim> data_out;
           data_out.attach_dof_handler(dof_handler);
-          data_out.add_data_vector(*current_solution, "u",
+          data_out.add_data_vector(current_solution, "u",
                                    DataOut<dim>::type_dof_data,
                                    data_component_interpretation);
           data_out.build_patches(parameters.patch_level);
