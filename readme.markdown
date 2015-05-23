@@ -29,8 +29,8 @@ Navier-Stokes solver with all of the bells and whistles.
 
 Of course, this approach may backfire: If you are a fan of horror stories then I
 recommend
-http://www.tomdalling.com/blog/software-design/fizzbuzz-in-too-much-detail/(this
-frightening tale).
+[this](http://www.tomdalling.com/blog/software-design/fizzbuzz-in-too-much-detail/)
+ frightening tale.
 
 Requirements
 ------------
