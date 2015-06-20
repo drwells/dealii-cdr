@@ -85,11 +85,13 @@ CDRProblem<dim>::CDRProblem(const Parameters &parameters) :
 {
   Assert(dim == 2, ExcNotImplemented());
   parser_constants["pi"] = numbers::PI;
-  std::vector<std::string> convection_field(2);
-  convection_field[0] =
-    parameters.convection_field.substr(0, parameters.convection_field.find_first_of(","));
-  convection_field[1] =
-    parameters.convection_field.substr(parameters.convection_field.find_first_of(",") + 1);
+  std::vector<std::string> convection_field
+  {
+    parameters.convection_field.substr
+      (0, parameters.convection_field.find_first_of(",")),
+    parameters.convection_field.substr
+      (parameters.convection_field.find_first_of(",") + 1)
+  };
 
   convection_function.initialize(std::string("x,y"), convection_field,
                                  parser_constants,
