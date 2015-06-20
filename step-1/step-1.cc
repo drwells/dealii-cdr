@@ -30,6 +30,7 @@
 
 #include "../common/convection.h"
 #include "parameters.h"
+#include "../common/system_matrix.h"
 
 using namespace dealii;
 
@@ -147,13 +148,8 @@ void CDRProblem<dim>::setup_matrices()
 
   {
     system_matrix.reinit(sparsity_pattern);
-    system_matrix = 0.0;
-    system_matrix.add(1.0, mass_matrix);
-    system_matrix.add(time_step*parameters.diffusion_coefficient/2.0,
-                      laplace_matrix);
-    system_matrix.add(time_step/2.0, convection_matrix);
-    system_matrix.add(time_step*parameters.reaction_coefficient/2.0, mass_matrix);
-    constraints.condense(system_matrix);
+    create_system_matrix(dof_handler, quad, convection_function, constraints,
+                         parameters, system_matrix);
 
     preconditioner.initialize(system_matrix);
   }
