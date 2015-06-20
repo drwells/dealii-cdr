@@ -64,7 +64,6 @@ private:
   SparseMatrix<double> system_matrix;
   SparseMatrix<double> right_hand_side_matrix;
 
-  // PreconditionIdentity preconditioner;
   SparseILU<double>    preconditioner;
 
   void setup_geometry();
