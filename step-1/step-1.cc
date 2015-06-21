@@ -134,16 +134,13 @@ void CDRProblem<dim>::setup_matrices()
   }
 
   mass_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_mass_matrix
-    (dof_handler, quad, mass_matrix,
-     static_cast<const Function<dim> *>(nullptr), constraints);
+  MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
   convection_matrix.reinit(sparsity_pattern);
+  convection_matrix = 0.0;
   create_convection_matrix(dof_handler, quad, convection_function,
-                           convection_matrix, constraints);
+                           convection_matrix);
   laplace_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_laplace_matrix
-    (dof_handler, quad, laplace_matrix,
-     static_cast<const Function<dim> *>(nullptr), constraints);
+  MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix);
 
   {
     system_matrix.reinit(sparsity_pattern);

@@ -6,6 +6,36 @@ void create_convection_matrix(const DoFHandler<dim>     &dof_handler,
                               SparseMatrix<double>      &convection_matrix,
                               const ConstraintMatrix    &constraints)
 {
+  internal_create_convection_matrix
+  (dof_handler, quad, convection_function,
+   [&constraints, &convection_matrix](auto &local_indices, auto &cell_matrix)
+  {
+    constraints.distribute_local_to_global
+    (cell_matrix, local_indices, convection_matrix);
+  });
+}
+
+
+template<int dim>
+void create_convection_matrix(const DoFHandler<dim>     &dof_handler,
+                              const QGauss<dim>         &quad,
+                              const FunctionParser<dim> &convection_function,
+                              SparseMatrix<double>      &convection_matrix)
+{
+  internal_create_convection_matrix
+  (dof_handler, quad, convection_function,
+   [&convection_matrix](auto &local_indices, auto &cell_matrix)
+  {
+    convection_matrix.add(local_indices, cell_matrix);
+  });
+}
+
+template<int dim, typename UpdateFunction>
+void internal_create_convection_matrix(const DoFHandler<dim>     &dof_handler,
+                                       const QGauss<dim>         &quad,
+                                       const FunctionParser<dim> &convection_function,
+                                       UpdateFunction            update_convection_matrix)
+{
   auto &fe = dof_handler.get_fe();
   const auto dofs_per_cell = fe.dofs_per_cell;
   FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
@@ -36,12 +66,11 @@ void create_convection_matrix(const DoFHandler<dim>     &dof_handler,
                         * fe_values.shape_grad(j, q)[dim_n];
                     }
                   cell_matrix(i, j) += fe_values.shape_value(i, q)
-                    *convection_contribution
-                    *fe_values.JxW(q);
+                                       *convection_contribution
+                                       *fe_values.JxW(q);
                 }
             }
         }
-      constraints.distribute_local_to_global(cell_matrix, local_indices,
-                                             convection_matrix);
+      update_convection_matrix(local_indices, cell_matrix);
     }
 }
