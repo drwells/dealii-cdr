@@ -17,7 +17,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/manifold_lib.h>
 
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/sparsity_pattern.h>
 #include <deal.II/lac/solver_gmres.h>
@@ -127,7 +127,7 @@ void CDRProblem<dim>::setup_matrices()
                                            constraints);
   constraints.close();
   {
-    CompressedSparsityPattern dynamic_sparsity_pattern(dof_handler.n_dofs());
+    DynamicSparsityPattern dynamic_sparsity_pattern(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dynamic_sparsity_pattern,
                                     constraints, /*keep_constrained_dofs*/true);
     sparsity_pattern.copy_from(dynamic_sparsity_pattern);

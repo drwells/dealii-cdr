@@ -17,7 +17,7 @@
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/manifold_lib.h>
 
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/sparsity_pattern.h>
 #include <deal.II/lac/solver_gmres.h>
@@ -144,32 +144,24 @@ void CDRProblem<dim>::setup_matrices()
   DoFTools::make_zero_boundary_constraints(dof_handler, manifold_id, constraints);
   constraints.close();
   {
-    CompressedSparsityPattern dynamic_sparsity_pattern(dof_handler.n_dofs());
+    DynamicSparsityPattern dynamic_sparsity_pattern(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dynamic_sparsity_pattern,
                                     constraints, /*keep_constrained_dofs*/true);
     sparsity_pattern.copy_from(dynamic_sparsity_pattern);
   }
 
   mass_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_mass_matrix
-    (dof_handler, quad, mass_matrix,
-     static_cast<const Function<dim> *>(nullptr), constraints);
+  MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
   convection_matrix.reinit(sparsity_pattern);
   create_convection_matrix(dof_handler, quad, convection_function,
-                           convection_matrix, constraints);
+                           convection_matrix);
   laplace_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_laplace_matrix
-    (dof_handler, quad, laplace_matrix,
-     static_cast<const Function<dim> *>(nullptr), constraints);
+  MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix);
 
   {
     system_matrix.reinit(sparsity_pattern);
-    system_matrix = 0.0;
-    system_matrix.add(1.0, mass_matrix);
-    system_matrix.add(time_step*parameters.diffusion_coefficient/2.0,
-                      laplace_matrix);
-    system_matrix.add(time_step/2.0, convection_matrix);
-    system_matrix.add(time_step*parameters.reaction_coefficient/2.0, mass_matrix);
+    create_system_matrix(dof_handler, quad, convection_function, constraints,
+                         parameters, system_matrix);
 
     preconditioner.initialize(system_matrix);
   }
