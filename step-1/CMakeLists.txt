@@ -1,6 +1,6 @@
 SET(TARGET "step-1")
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -g")
 
 # Declare all source files the target consists of:
 SET(TARGET_SRC
