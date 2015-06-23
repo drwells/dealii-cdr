@@ -32,6 +32,7 @@
 
 #include "../common/convection.h"
 #include "parameters.h"
+#include "../common/system_matrix.h"
 
 using namespace dealii;
 
