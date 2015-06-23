@@ -202,17 +202,16 @@ void CDRProblem<dim>::time_iterate()
         {
           current_forcing = previous_forcing;
         }
-      right_hand_side = 0.0;
       right_hand_side.add(time_step/2.0, current_forcing);
       right_hand_side.add(time_step/2.0, previous_forcing);
       right_hand_side_matrix.vmult_add(right_hand_side, previous_solution);
-
-      constraints.condense(system_matrix);
+      constraints.condense(right_hand_side);
 
       SolverControl solver_control(current_solution.size(),
                                    1e-6*(right_hand_side.l2_norm()));
       SolverGMRES<Vector<double>> solver(solver_control);
       solver.solve(system_matrix, current_solution, right_hand_side, preconditioner);
+      constraints.distribute(current_solution);
 
       if (time_step_n % parameters.save_interval == 0)
         {
