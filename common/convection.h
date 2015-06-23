@@ -1,4 +1,17 @@
+#include <vector>
+
+#include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/function_parser.h>
+#include <deal.II/base/function.h>
+
+#include <deal.II/dofs/dof_handler.h>
+
+#include <deal.II/fe/fe_q.h>
+
+#include <deal.II/lac/constraint_matrix.h>
+
 using namespace dealii;
+
 template<int dim>
 void create_convection_matrix(const DoFHandler<dim>     &dof_handler,
                               const QGauss<dim>         &quad,
