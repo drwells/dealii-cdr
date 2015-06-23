@@ -266,7 +266,7 @@ void CDRProblem<dim>::refine_mesh()
   // GridRefinement::refine_and_coarsen_fixed_fraction
   //   (triangulation, estimated_error_per_cell, 0.2, 0.1);
   GridRefinement::refine(triangulation, estimated_error_per_cell, 1e-3);
-  GridRefinement::coarsen(triangulation, estimated_error_per_cell, 1e-6);
+  GridRefinement::coarsen(triangulation, estimated_error_per_cell, 1e-4);
 
   // TODO make max_refinement_level a parameter
   if (triangulation.n_levels() > parameters.refinement_level)
