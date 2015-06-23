@@ -185,7 +185,6 @@ void CDRProblem<dim>::time_iterate()
   std::vector<XDMFEntry> xdmf_entries;
   std::string xdmf_file_name {"solution.xdmf"};
 
-
   double current_time = parameters.start_time;
   for (unsigned int time_step_n = 0; time_step_n < parameters.n_time_steps;
        ++time_step_n)

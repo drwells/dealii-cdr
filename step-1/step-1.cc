@@ -179,12 +179,10 @@ void CDRProblem<dim>::time_iterate()
 
   Vector<double> right_hand_side(dof_handler.n_dofs());
 
-
   bool write_mesh {true};
   std::vector<XDMFEntry> xdmf_entries;
   std::string mesh_file_name {"mesh.h5"};
   std::string xdmf_file_name {"solution.xdmf"};
-
 
   double current_time = parameters.start_time;
   for (unsigned int time_step_n = 0; time_step_n < parameters.n_time_steps;
