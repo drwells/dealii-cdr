@@ -270,11 +270,10 @@ int main(int argc, char *argv[])
   Parameters parameters
   {
     1.0, 2.0,
-    // 1.0e-2, "cos(pi/3),sin(pi/3)", 1.0, "1.0", false,
-    1.0e-6, "-y,x", 1.0e-4, "exp(-10*(x - 1.5*cos(0.1*t))^2)"
-    "*exp(-10*(y - 1.5*sin(0.1*t))^2)", true,
+    1.0e-3, "-y,x", 1.0e-4, "exp(-2*t)*exp(-40*(x - 1.5)^6)"
+    "*exp(-40*y^6)", true,
     3, 2,
-    0.0, 20.0, 4000,
+    0.0, 20.0, 2000,
     1, 3
   };
   CDRProblem<dim> cdr_problem(parameters);
