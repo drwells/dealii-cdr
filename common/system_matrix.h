@@ -21,7 +21,6 @@ void create_system_matrix(const DoFHandler<dim>     &dof_handler,
   const auto dofs_per_cell = fe.dofs_per_cell;
   const double time_step = (parameters.stop_time - parameters.start_time)
     /parameters.n_time_steps;
-  std::cout << "time_step = " << time_step << std::endl;
   FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
   FEValues<dim> fe_values(fe, quad, update_values | update_gradients |
                           update_quadrature_points | update_JxW_values);
