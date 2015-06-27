@@ -31,7 +31,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include "../common/convection.h"
-#include "parameters.h"
+#include "../common/parameters.h"
 #include "../common/system_matrix.h"
 
 using namespace dealii;
@@ -43,10 +43,10 @@ template<int dim>
 class CDRProblem
 {
 public:
-  CDRProblem(const Parameters &parameters);
+  CDRProblem(const CDR::Parameters &parameters);
   void run();
 private:
-  const Parameters parameters;
+  const CDR::Parameters parameters;
   const double time_step;
 
   FE_Q<dim> fe;
@@ -85,7 +85,7 @@ private:
 
 
 template<int dim>
-CDRProblem<dim>::CDRProblem(const Parameters &parameters) :
+CDRProblem<dim>::CDRProblem(const CDR::Parameters &parameters) :
   parameters(parameters),
   time_step {(parameters.stop_time - parameters.start_time)
     /parameters.n_time_steps},
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization
     (argc, argv, numbers::invalid_unsigned_int);
-  Parameters parameters
+  CDR::Parameters parameters
   {
     1.0, 2.0,
     1.0e-3, "-y,x", 1.0e-4, "exp(-8*t)*exp(-40*(x - 1.5)^6)"
