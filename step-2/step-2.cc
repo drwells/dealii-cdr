@@ -5,13 +5,11 @@
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function_parser.h>
-#include <deal.II/base/function.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_values.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
@@ -169,7 +167,6 @@ void CDRProblem<dim>::setup_matrices()
 
   {
     right_hand_side_matrix.reinit(sparsity_pattern);
-    right_hand_side_matrix = 0.0;
     right_hand_side_matrix.add
       (1.0 - time_step*parameters.reaction_coefficient/2.0, mass_matrix);
     right_hand_side_matrix.add

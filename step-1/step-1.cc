@@ -1,18 +1,15 @@
 #include <iostream>
 #include <map>
-#include <memory>
 #include <string>
 #include <vector>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function_parser.h>
-#include <deal.II/base/function.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_values.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/manifold_lib.h>
@@ -136,7 +133,6 @@ void CDRProblem<dim>::setup_matrices()
   mass_matrix.reinit(sparsity_pattern);
   MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
   convection_matrix.reinit(sparsity_pattern);
-  convection_matrix = 0.0;
   CDR::create_convection_matrix(dof_handler, quad, convection_function,
                                 convection_matrix);
   laplace_matrix.reinit(sparsity_pattern);
