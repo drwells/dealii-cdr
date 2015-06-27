@@ -161,8 +161,8 @@ void CDRProblem<dim>::setup_matrices()
 
   {
     system_matrix.reinit(sparsity_pattern);
-    create_system_matrix(dof_handler, quad, convection_function, constraints,
-                         parameters, system_matrix);
+    CDR::create_system_matrix(dof_handler, quad, convection_function,
+                              constraints, parameters, system_matrix);
 
     preconditioner.initialize(system_matrix);
   }
