@@ -28,7 +28,7 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include "../common/convection.h"
+#include "../common/convection_matrix.h"
 #include "../common/parameters.h"
 #include "../common/system_matrix.h"
 
@@ -137,8 +137,8 @@ void CDRProblem<dim>::setup_matrices()
   MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
   convection_matrix.reinit(sparsity_pattern);
   convection_matrix = 0.0;
-  create_convection_matrix(dof_handler, quad, convection_function,
-                           convection_matrix);
+  CDR::create_convection_matrix(dof_handler, quad, convection_function,
+                                convection_matrix);
   laplace_matrix.reinit(sparsity_pattern);
   MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix);
 
