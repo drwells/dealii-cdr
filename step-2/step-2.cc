@@ -22,7 +22,6 @@
 #include <deal.II/lac/sparse_ilu.h>
 #include <deal.II/lac/sparse_matrix.h>
 
-#include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
@@ -31,6 +30,7 @@
 #include "../common/convection_matrix.h"
 #include "../common/parameters.h"
 #include "../common/system_matrix.h"
+#include "../common/write_xdmf_output.h"
 
 using namespace dealii;
 
@@ -179,10 +179,11 @@ void CDRProblem<dim>::setup_matrices()
 template<int dim>
 void CDRProblem<dim>::time_iterate()
 {
-  std::vector<XDMFEntry> xdmf_entries;
-  std::string xdmf_file_name {"solution.xdmf"};
-
   double current_time = parameters.start_time;
+
+  CDR::WriteXDMFOutput xdmf_output(parameters.patch_level,
+                                   /*update_mesh_at_each_step*/true);
+
   for (unsigned int time_step_n = 0; time_step_n < parameters.n_time_steps;
        ++time_step_n)
     {
@@ -212,33 +213,8 @@ void CDRProblem<dim>::time_iterate()
 
       if (time_step_n % parameters.save_interval == 0)
         {
-          std::vector<DataComponentInterpretation::DataComponentInterpretation>
-            data_component_interpretation;
-          data_component_interpretation
-            .push_back(DataComponentInterpretation::component_is_scalar);
-
-          DataOut<dim> data_out;
-          data_out.attach_dof_handler(dof_handler);
-          data_out.add_data_vector(current_solution, "u",
-                                   DataOut<dim>::type_dof_data,
-                                   data_component_interpretation);
-          data_out.build_patches(parameters.patch_level);
-
-          std::string solution_file_name = "solution-" +
-            Utilities::int_to_string(time_step_n, 9) + ".h5";
-          std::string mesh_file_name = "mesh-" +
-            Utilities::int_to_string(time_step_n, 9) + ".h5";
-          DataOutBase::DataOutFilter data_filter
-            (DataOutBase::DataOutFilterFlags(true, true));
-          data_out.write_filtered_data(data_filter);
-          data_out.write_hdf5_parallel
-            (data_filter, /*write_mesh=*/true, mesh_file_name,
-             solution_file_name, MPI_COMM_WORLD);
-          data_out.write_xdmf_file(xdmf_entries, xdmf_file_name, MPI_COMM_WORLD);
-          auto new_xdmf_entry = data_out.create_xdmf_entry
-            (data_filter, mesh_file_name, solution_file_name,
-             current_time, MPI_COMM_WORLD);
-          xdmf_entries.push_back(std::move(new_xdmf_entry));
+          xdmf_output.write_output(dof_handler, current_solution, time_step_n,
+                                   current_time);
         }
 
       if (parameters.time_dependent_forcing)
