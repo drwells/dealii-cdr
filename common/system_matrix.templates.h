@@ -1,15 +1,7 @@
-#include <deal.II/base/function.h>
-#include <deal.II/base/function_parser.h>
-#include <deal.II/base/quadrature_lib.h>
-
-#include <deal.II/dofs/dof_handler.h>
-
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
 
-#include <deal.II/lac/constraint_matrix.h>
-
-#include "parameters.h"
+#include "system_matrix.h"
 
 #include <vector>
 
@@ -21,14 +13,46 @@ namespace CDR
   void create_system_matrix(const DoFHandler<dim>     &dof_handler,
                             const QGauss<dim>         &quad,
                             const FunctionParser<dim> &convection_function,
-                            const ConstraintMatrix    &constraints,
                             const CDR::Parameters     &parameters,
+                            const double              &time_step,
+                            const ConstraintMatrix    &constraints,
                             Matrix                    &system_matrix)
+  {
+    internal_create_system_matrix
+      (dof_handler, quad, convection_function, parameters, time_step,
+       [&constraints, &system_matrix](auto &local_indices, auto &cell_matrix)
+       {
+         constraints.distribute_local_to_global
+           (cell_matrix, local_indices, system_matrix);
+       });
+  }
+
+  template<int dim, typename Matrix>
+  void create_system_matrix(const DoFHandler<dim>     &dof_handler,
+                            const QGauss<dim>         &quad,
+                            const FunctionParser<dim> &convection_function,
+                            const CDR::Parameters     &parameters,
+                            const double              &time_step,
+                            Matrix                    &system_matrix)
+  {
+    internal_create_system_matrix
+      (dof_handler, quad, convection_function, parameters, time_step,
+       [&system_matrix](auto &local_indices, auto &cell_matrix)
+       {
+         system_matrix.add(local_indices, cell_matrix);
+       });
+  }
+
+  template<int dim, typename UpdateFunction>
+  void internal_create_system_matrix(const DoFHandler<dim>     &dof_handler,
+                                     const QGauss<dim>         &quad,
+                                     const FunctionParser<dim> &convection_function,
+                                     const CDR::Parameters     &parameters,
+                                     const double              &time_step,
+                                     UpdateFunction            update_system_matrix)
   {
     auto &fe = dof_handler.get_fe();
     const auto dofs_per_cell = fe.dofs_per_cell;
-    const double time_step = (parameters.stop_time - parameters.start_time)
-      /parameters.n_time_steps;
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     FEValues<dim> fe_values(fe, quad, update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
