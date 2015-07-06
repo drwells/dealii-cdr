@@ -27,10 +27,9 @@
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include "../common/convection_matrix.h"
 #include "../common/parameters.h"
-#include "../common/system_matrix.h"
 #include "../common/write_xdmf_output.h"
+#include "../common/assemble_system.h"
 
 using namespace dealii;
 
@@ -60,23 +59,15 @@ private:
 
   ConstraintMatrix constraints;
 
-  SparseMatrix<double> mass_matrix;
-  SparseMatrix<double> convection_matrix;
-  SparseMatrix<double> laplace_matrix;
-
   SparseMatrix<double> system_matrix;
-  SparseMatrix<double> right_hand_side_matrix;
-
-  SparseILU<double>    preconditioner;
-
-  Vector<double> right_hand_side;
-  Vector<double> current_forcing;
-  Vector<double> previous_forcing;
+  Vector<double> system_rhs;
   Vector<double> current_solution;
-  Vector<double> previous_solution;
+
+  SparseILU<double> preconditioner;
 
   void setup_geometry();
-  void setup_matrices();
+  void setup_system();
+  void setup_dof_handler();
   void refine_mesh();
   void time_iterate();
 };
@@ -125,16 +116,18 @@ void CDRProblem<dim>::setup_geometry()
   triangulation.refine_global(parameters.refinement_level);
   dof_handler.initialize(triangulation, fe);
 
-  right_hand_side.reinit(dof_handler.n_dofs());
-  current_forcing.reinit(dof_handler.n_dofs());
-  previous_forcing.reinit(dof_handler.n_dofs());
+  // This must be done here so that the vector is the correct size when
+  // entering setup_system. During time iteration refine_mesh will resize
+  // current_solution.
   current_solution.reinit(dof_handler.n_dofs());
-  previous_solution.reinit(dof_handler.n_dofs());
 }
 
 
+// This should be called once the triangulation is set up (or has been
+// refined). More specifically, this should be called after setup_geometry or
+// refine_mesh.
 template<int dim>
-void CDRProblem<dim>::setup_matrices()
+void CDRProblem<dim>::setup_dof_handler()
 {
   dof_handler.distribute_dofs(fe);
   std::cout << "number of DoFs: " << dof_handler.n_dofs() << std::endl;
@@ -142,37 +135,22 @@ void CDRProblem<dim>::setup_matrices()
   DoFTools::make_hanging_node_constraints(dof_handler, constraints);
   DoFTools::make_zero_boundary_constraints(dof_handler, manifold_id, constraints);
   constraints.close();
-  {
-    DynamicSparsityPattern dynamic_sparsity_pattern(dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(dof_handler, dynamic_sparsity_pattern,
-                                    constraints, /*keep_constrained_dofs*/true);
-    sparsity_pattern.copy_from(dynamic_sparsity_pattern);
-  }
+  DynamicSparsityPattern dynamic_sparsity_pattern(dof_handler.n_dofs());
+  DoFTools::make_sparsity_pattern(dof_handler, dynamic_sparsity_pattern,
+                                  constraints, /*keep_constrained_dofs*/true);
+  sparsity_pattern.copy_from(dynamic_sparsity_pattern);
+}
 
-  mass_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
-  convection_matrix.reinit(sparsity_pattern);
-  CDR::create_convection_matrix(dof_handler, quad, convection_function,
-                                convection_matrix);
-  laplace_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix);
 
-  {
-    system_matrix.reinit(sparsity_pattern);
-    CDR::create_system_matrix(dof_handler, quad, convection_function,
-                              constraints, parameters, system_matrix);
-
-    preconditioner.initialize(system_matrix);
-  }
-
-  {
-    right_hand_side_matrix.reinit(sparsity_pattern);
-    right_hand_side_matrix.add
-      (1.0 - time_step*parameters.reaction_coefficient/2.0, mass_matrix);
-    right_hand_side_matrix.add
-      (-1.0*time_step*parameters.diffusion_coefficient/2.0, laplace_matrix);
-    right_hand_side_matrix.add(-1.0*time_step/2.0, convection_matrix);
-  }
+template<int dim>
+void CDRProblem<dim>::setup_system()
+{
+  system_rhs.reinit(dof_handler.n_dofs());
+  system_matrix.reinit(sparsity_pattern);
+  CDR::assemble_system(dof_handler, quad, convection_function, forcing_function,
+                       parameters, current_solution, constraints, system_matrix,
+                       system_rhs);
+  preconditioner.initialize(system_matrix);
 }
 
 
@@ -188,27 +166,12 @@ void CDRProblem<dim>::time_iterate()
        ++time_step_n)
     {
       current_time += time_step;
-      VectorTools::create_right_hand_side
-        (dof_handler, quad, forcing_function, previous_forcing);
-      if (parameters.time_dependent_forcing)
-        {
-          forcing_function.advance_time(time_step);
-          VectorTools::create_right_hand_side
-            (dof_handler, quad, forcing_function, current_forcing);
-        }
-      else
-        {
-          current_forcing = previous_forcing;
-        }
-      right_hand_side.add(time_step/2.0, current_forcing);
-      right_hand_side.add(time_step/2.0, previous_forcing);
-      right_hand_side_matrix.vmult_add(right_hand_side, previous_solution);
-      constraints.condense(right_hand_side);
+      forcing_function.advance_time(time_step);
 
       SolverControl solver_control(current_solution.size(),
-                                   1e-6*(right_hand_side.l2_norm()));
+                                   1e-6*(system_rhs.l2_norm()));
       SolverGMRES<Vector<double>> solver(solver_control);
-      solver.solve(system_matrix, current_solution, right_hand_side, preconditioner);
+      solver.solve(system_matrix, current_solution, system_rhs, preconditioner);
       constraints.distribute(current_solution);
 
       if (time_step_n % parameters.save_interval == 0)
@@ -216,12 +179,6 @@ void CDRProblem<dim>::time_iterate()
           xdmf_output.write_output(dof_handler, current_solution, time_step_n,
                                    current_time);
         }
-
-      if (parameters.time_dependent_forcing)
-        {
-          std::swap(current_forcing, previous_forcing);
-        }
-      std::swap(current_solution, previous_solution);
       std::cout << time_step_n << std::endl;
 
       refine_mesh();
@@ -229,17 +186,19 @@ void CDRProblem<dim>::time_iterate()
 }
 
 
+// This function estimates the current solution error, refines (and coarsens)
+// the mesh appropriately, and transfers the current solution onto the new mesh.
 template<int dim>
 void CDRProblem<dim>::refine_mesh()
 {
+  SolutionTransfer<dim> solution_transfer(dof_handler);
+
   Vector<float> estimated_error_per_cell(triangulation.n_active_cells());
   KellyErrorEstimator<dim>::estimate
     (dof_handler, QGauss<dim - 1>(fe.degree + 1), typename FunctionMap<dim>::type(),
-     previous_solution, estimated_error_per_cell);
-  // GridRefinement::refine_and_coarsen_fixed_fraction
-  //   (triangulation, estimated_error_per_cell, 0.2, 0.1);
+     current_solution, estimated_error_per_cell);
   GridRefinement::refine(triangulation, estimated_error_per_cell, 1e-3);
-  GridRefinement::coarsen(triangulation, estimated_error_per_cell, 1e-4);
+  GridRefinement::coarsen(triangulation, estimated_error_per_cell, 5e-4);
 
   // TODO make max_refinement_level a parameter
   if (triangulation.n_levels() > parameters.refinement_level)
@@ -251,30 +210,27 @@ void CDRProblem<dim>::refine_mesh()
         }
     }
 
-  Vector<double> unrefined_previous_solution = previous_solution;
+  Vector<double> unrefined_current_solution {current_solution};
 
-  SolutionTransfer<dim> solution_transfer(dof_handler);
   triangulation.prepare_coarsening_and_refinement();
-  solution_transfer.prepare_for_coarsening_and_refinement(unrefined_previous_solution);
+  solution_transfer.prepare_for_coarsening_and_refinement(unrefined_current_solution);
 
   triangulation.execute_coarsening_and_refinement();
-  setup_matrices();
-
-  right_hand_side.reinit(dof_handler.n_dofs());
-  previous_forcing.reinit(dof_handler.n_dofs());
-  current_forcing.reinit(dof_handler.n_dofs());
-  previous_solution.reinit(dof_handler.n_dofs());
+  setup_dof_handler();
   current_solution.reinit(dof_handler.n_dofs());
+  solution_transfer.interpolate(unrefined_current_solution, current_solution);
 
-  solution_transfer.interpolate(unrefined_previous_solution, previous_solution);
-  constraints.distribute(previous_solution);
+  constraints.distribute(current_solution);
+  setup_system();
 }
+
 
 template<int dim>
 void CDRProblem<dim>::run()
 {
   setup_geometry();
-  setup_matrices();
+  setup_dof_handler();
+  setup_system();
   time_iterate();
 }
 
