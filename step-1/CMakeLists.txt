@@ -2,18 +2,13 @@ SET(TARGET "step-1")
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -g")
 
-# Declare all source files the target consists of:
-SET(TARGET_SRC
-  ${TARGET}.cc
-  ../common/parameters.cc
-  ../common/parameters.h
-  ../common/system_matrix.h
-  ../common/system_matrix.templates.h
-  ../common/system_matrix.cc
-  ../common/convection_matrix.h
-  ../common/convection_matrix.templates.h
-  ../common/convection_matrix.cc
-  )
+SET(TARGET_SRC ${TARGET}.cc)
+
+FILE(GLOB_RECURSE COMMON_SOURCES "../common/*.cc")
+FILE(GLOB_RECURSE COMMON_HEADERS "../common/*.h")
+
+LIST(APPEND TARGET_SRC ${COMMON_SOURCES})
+LIST(APPEND TARGET_SRC ${COMMON_HEADERS})
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 
