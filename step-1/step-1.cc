@@ -24,9 +24,9 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include "../common/convection_matrix.h"
 #include "../common/parameters.h"
 #include "../common/system_matrix.h"
+#include "../common/system_rhs.h"
 #include "../common/write_xdmf_output.h"
 
 using namespace dealii;
@@ -54,12 +54,7 @@ private:
 
   ConstraintMatrix constraints;
 
-  SparseMatrix<double> mass_matrix;
-  SparseMatrix<double> convection_matrix;
-  SparseMatrix<double> laplace_matrix;
-
   SparseMatrix<double> system_matrix;
-  SparseMatrix<double> right_hand_side_matrix;
 
   SparseILU<double>    preconditioner;
 
@@ -130,31 +125,10 @@ void CDRProblem<dim>::setup_matrices()
     sparsity_pattern.copy_from(dynamic_sparsity_pattern);
   }
 
-  mass_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
-  convection_matrix.reinit(sparsity_pattern);
-  CDR::create_convection_matrix(dof_handler, quad, convection_function,
-                                convection_matrix);
-  laplace_matrix.reinit(sparsity_pattern);
-  MatrixCreator::create_laplace_matrix(dof_handler, quad, laplace_matrix);
-
-  {
-    system_matrix.reinit(sparsity_pattern);
-    CDR::create_system_matrix(dof_handler, quad, convection_function,
-                              constraints, parameters, system_matrix);
-
-    preconditioner.initialize(system_matrix);
-  }
-
-  {
-    right_hand_side_matrix.reinit(sparsity_pattern);
-    right_hand_side_matrix = 0.0;
-    right_hand_side_matrix.add
-      (1.0 - time_step*parameters.reaction_coefficient/2.0, mass_matrix);
-    right_hand_side_matrix.add
-      (-1.0*time_step*parameters.diffusion_coefficient/2.0, laplace_matrix);
-    right_hand_side_matrix.add(-1.0*time_step/2.0, convection_matrix);
-  }
+  system_matrix.reinit(sparsity_pattern);
+  CDR::create_system_matrix(dof_handler, quad, convection_function, parameters,
+                            time_step, constraints, system_matrix);
+  preconditioner.initialize(system_matrix);
 }
 
 
@@ -162,17 +136,6 @@ template<int dim>
 void CDRProblem<dim>::time_iterate()
 {
   Vector<double> current_solution(dof_handler.n_dofs());
-  auto previous_solution = current_solution;
-  auto current_forcing = current_solution;
-  auto previous_forcing = current_forcing;
-
-  if (!parameters.time_dependent_forcing)
-    {
-      VectorTools::create_right_hand_side
-        (dof_handler, quad, forcing_function, current_forcing);
-      previous_forcing = current_forcing;
-    }
-
   Vector<double> right_hand_side(dof_handler.n_dofs());
 
   double current_time = parameters.start_time;
@@ -182,17 +145,12 @@ void CDRProblem<dim>::time_iterate()
        ++time_step_n)
     {
       current_time += time_step;
-      if (parameters.time_dependent_forcing)
-        {
-          forcing_function.advance_time(time_step);
-          VectorTools::create_right_hand_side
-            (dof_handler, quad, forcing_function, current_forcing);
-        }
+      forcing_function.advance_time(time_step);
+
       right_hand_side = 0.0;
-      right_hand_side.add(time_step/2.0, current_forcing);
-      right_hand_side.add(time_step/2.0, previous_forcing);
-      right_hand_side_matrix.vmult_add(right_hand_side, previous_solution);
-      constraints.condense(right_hand_side);
+      CDR::create_system_rhs(dof_handler, quad, convection_function,
+                             forcing_function, parameters, current_solution,
+                             constraints, right_hand_side);
 
       SolverControl solver_control(current_solution.size(),
                                    1e-6*right_hand_side.l2_norm());
