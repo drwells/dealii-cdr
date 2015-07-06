@@ -38,40 +38,42 @@ namespace CDR
 
     for (const auto &cell : dof_handler.active_cell_iterators())
       {
-        fe_values.reinit(cell);
-        cell_matrix = 0.0;
-        cell->get_dof_indices(local_indices);
-        for (unsigned int q = 0; q < quad.size(); ++q)
+        if (cell->is_locally_owned())
           {
-            convection_function.vector_value(fe_values.quadrature_point(q),
-                                             current_convection);
-            for (unsigned int i = 0; i < dofs_per_cell; ++i)
+            fe_values.reinit(cell);
+            cell_matrix = 0.0;
+            cell->get_dof_indices(local_indices);
+            for (unsigned int q = 0; q < quad.size(); ++q)
               {
-                for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                convection_function.vector_value(fe_values.quadrature_point(q),
+                                                 current_convection);
+                for (unsigned int i = 0; i < dofs_per_cell; ++i)
                   {
-                    double convection_contribution = 0.0;
-                    for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+                    for (unsigned int j = 0; j < dofs_per_cell; ++j)
                       {
-                        convection_contribution +=
-                          current_convection[dim_n]
-                          * fe_values.shape_grad(j, q)[dim_n];
+                        double convection_contribution = 0.0;
+                        for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+                          {
+                            convection_contribution +=
+                              current_convection[dim_n]
+                              * fe_values.shape_grad(j, q)[dim_n];
+                          }
+                        cell_matrix(i, j) += fe_values.JxW(q)*
+                          // mass and reaction part
+                          ((1.0 + time_step/2.0*parameters.reaction_coefficient)
+                           *fe_values.shape_value(i, q)*fe_values.shape_value(j, q)
+                           + time_step/2.0*
+                           // convection part
+                           (fe_values.shape_value(i, q)*convection_contribution
+                            // Laplacian part
+                            + parameters.diffusion_coefficient
+                            *(fe_values.shape_grad(i, q)*fe_values.shape_grad(j, q)))
+                           );
                       }
-                    cell_matrix(i, j) += fe_values.JxW(q)*
-                      // mass and reaction part
-                      ((1.0 + time_step/2.0*parameters.reaction_coefficient)
-                       *fe_values.shape_value(i, q)*fe_values.shape_value(j, q)
-                       + time_step/2.0*
-                       // convection part
-                       (fe_values.shape_value(i, q)*convection_contribution
-                        // Laplacian part
-                        + parameters.diffusion_coefficient
-                        *(fe_values.shape_grad(i, q)*fe_values.shape_grad(j, q)))
-                       );
                   }
               }
+            update_system_matrix(local_indices, cell_matrix);
           }
-        constraints.distribute_local_to_global(cell_matrix, local_indices,
-                                               system_matrix);
       }
   }
 }
