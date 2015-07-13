@@ -9,3 +9,6 @@
 .dir-locals.el
 *.xdmf
 */cmake_install.cmake
+*.vtu
+*.pvtu
+*.vtk
