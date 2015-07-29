@@ -21,6 +21,7 @@
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <chrono>
 #include <functional>
 #include <iostream>
 #include <vector>
@@ -228,6 +229,8 @@ constexpr int dim {2};
 
 int main(int argc, char *argv[])
 {
+  auto t0 = std::chrono::high_resolution_clock::now();
+
   Utilities::MPI::MPI_InitFinalize mpi_initialization
     (argc, argv, numbers::invalid_unsigned_int);
   CDR::Parameters parameters
@@ -240,6 +243,15 @@ int main(int argc, char *argv[])
   };
   CDRProblem<dim> cdr_problem(parameters);
   cdr_problem.run();
+
+  auto t1 = std::chrono::high_resolution_clock::now();
+  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+    {
+      std::cout << "time elapsed: "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count()
+                << " milliseconds."
+                << std::endl;
+    }
 
   return 0;
 }
