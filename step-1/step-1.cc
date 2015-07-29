@@ -1,10 +1,4 @@
-#include <iostream>
-#include <map>
-#include <string>
-#include <vector>
-
 #include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/function_parser.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -23,6 +17,10 @@
 
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
+
+#include <array>
+#include <functional>
+#include <iostream>
 
 #include "../common/parameters.h"
 #include "../common/system_matrix.h"
@@ -48,15 +46,12 @@ private:
   DoFHandler<dim> dof_handler;
   SparsityPattern sparsity_pattern;
 
-  std::map<std::string, double> parser_constants;
-  FunctionParser<dim> convection_function;
-  FunctionParser<dim> forcing_function;
+  const std::function<std::array<double, dim>(Point<dim>)> convection_function;
+  const std::function<double(double, Point<dim>)> forcing_function;
 
   ConstraintMatrix constraints;
-
   SparseMatrix<double> system_matrix;
-
-  SparseILU<double>    preconditioner;
+  SparseILU<double> preconditioner;
 
   void setup_geometry();
   void setup_matrices();
@@ -72,26 +67,14 @@ CDRProblem<dim>::CDRProblem(const CDR::Parameters &parameters) :
   fe(parameters.fe_order),
   quad(3*(2 + parameters.fe_order)/2),
   boundary_description(Point<dim>(true)),
-  convection_function(dim),
-  forcing_function(1)
+  convection_function
+    {[](Point<dim> p) -> std::array<double, dim> {return {-p[1], p[0]};}},
+  forcing_function
+    {[](double t, Point<dim> p) -> double
+        {return std::exp(-8*t)*std::exp(-40*Utilities::fixed_power<6>(p[0] - 1.5))
+            *std::exp(-40*Utilities::fixed_power<6>(p[1]));}}
 {
   Assert(dim == 2, ExcNotImplemented());
-  parser_constants["pi"] = numbers::PI;
-  std::vector<std::string> convection_field
-  {
-    parameters.convection_field.substr
-      (0, parameters.convection_field.find_first_of(",")),
-    parameters.convection_field.substr
-      (parameters.convection_field.find_first_of(",") + 1)
-  };
-
-  convection_function.initialize(std::string("x,y"), convection_field,
-                                 parser_constants,
-                                 /*time_dependent=*/false);
-  forcing_function.initialize(std::string("x,y,t"), parameters.forcing,
-                              parser_constants,
-                              /*time_dependent=*/true);
-  forcing_function.set_time(parameters.start_time);
 }
 
 
@@ -126,8 +109,8 @@ void CDRProblem<dim>::setup_matrices()
   }
 
   system_matrix.reinit(sparsity_pattern);
-  CDR::create_system_matrix(dof_handler, quad, convection_function, parameters,
-                            time_step, constraints, system_matrix);
+  CDR::create_system_matrix<dim>(dof_handler, quad, convection_function,
+                                 parameters, time_step, constraints, system_matrix);
   preconditioner.initialize(system_matrix);
 }
 
@@ -148,9 +131,9 @@ void CDRProblem<dim>::time_iterate()
       forcing_function.advance_time(time_step);
 
       right_hand_side = 0.0;
-      CDR::create_system_rhs(dof_handler, quad, convection_function,
-                             forcing_function, parameters, current_solution,
-                             constraints, right_hand_side);
+      CDR::create_system_rhs<dim>
+        (dof_handler, quad, convection_function, forcing_function, parameters,
+         current_solution, constraints, current_time, system_rhs);
 
       SolverControl solver_control(current_solution.size(),
                                    1e-6*right_hand_side.l2_norm());
@@ -188,10 +171,9 @@ int main(int argc, char *argv[])
   CDR::Parameters parameters
   {
     1.0, 2.0,
-    1.0e-3, "-y,x", 1.0e-4, "exp(-2*t)*exp(-40*(x - 1.5)^6)"
-    "*exp(-40*y^6)", true,
-    3, 2,
-    0.0, 20.0, 2000,
+    1.0e-3, 1.0e-4, true,
+    4, 2,
+    0.0, 0.1, 100,
     1, 3
   };
   CDRProblem<dim> cdr_problem(parameters);

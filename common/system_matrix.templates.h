@@ -9,47 +9,14 @@ namespace CDR
 {
   using namespace dealii;
 
-  template<int dim, typename Matrix>
-  void create_system_matrix(const DoFHandler<dim>     &dof_handler,
-                            const QGauss<dim>         &quad,
-                            const FunctionParser<dim> &convection_function,
-                            const CDR::Parameters     &parameters,
-                            const double              &time_step,
-                            const ConstraintMatrix    &constraints,
-                            Matrix                    &system_matrix)
-  {
-    internal_create_system_matrix
-      (dof_handler, quad, convection_function, parameters, time_step,
-       [&constraints, &system_matrix](auto &local_indices, auto &cell_matrix)
-       {
-         constraints.distribute_local_to_global
-           (cell_matrix, local_indices, system_matrix);
-       });
-  }
-
-  template<int dim, typename Matrix>
-  void create_system_matrix(const DoFHandler<dim>     &dof_handler,
-                            const QGauss<dim>         &quad,
-                            const FunctionParser<dim> &convection_function,
-                            const CDR::Parameters     &parameters,
-                            const double              &time_step,
-                            Matrix                    &system_matrix)
-  {
-    internal_create_system_matrix
-      (dof_handler, quad, convection_function, parameters, time_step,
-       [&system_matrix](auto &local_indices, auto &cell_matrix)
-       {
-         system_matrix.add(local_indices, cell_matrix);
-       });
-  }
-
   template<int dim, typename UpdateFunction>
-  void internal_create_system_matrix(const DoFHandler<dim>     &dof_handler,
-                                     const QGauss<dim>         &quad,
-                                     const FunctionParser<dim> &convection_function,
-                                     const CDR::Parameters     &parameters,
-                                     const double              &time_step,
-                                     UpdateFunction            update_system_matrix)
+  void internal_create_system_matrix
+  (const DoFHandler<dim>                                    &dof_handler,
+   const QGauss<dim>                                        &quad,
+   const std::function<std::array<double, dim>(Point<dim>)> &convection_function,
+   const CDR::Parameters                                    &parameters,
+   const double                                             &time_step,
+   UpdateFunction                                           update_system_matrix)
   {
     auto &fe = dof_handler.get_fe();
     const auto dofs_per_cell = fe.dofs_per_cell;
@@ -69,8 +36,9 @@ namespace CDR
             cell->get_dof_indices(local_indices);
             for (unsigned int q = 0; q < quad.size(); ++q)
               {
-                convection_function.vector_value(fe_values.quadrature_point(q),
-                                                 current_convection);
+                const auto current_convection
+                {convection_function(fe_values.quadrature_point(q))};
+
                 for (unsigned int i = 0; i < dofs_per_cell; ++i)
                   {
                     for (unsigned int j = 0; j < dofs_per_cell; ++j)
@@ -99,5 +67,41 @@ namespace CDR
             update_system_matrix(local_indices, cell_matrix);
           }
       }
+  }
+
+  template<int dim, typename Matrix>
+  void create_system_matrix
+  (const DoFHandler<dim>                                    &dof_handler,
+   const QGauss<dim>                                        &quad,
+   const std::function<std::array<double, dim>(Point<dim>)> &convection_function,
+   const CDR::Parameters                                    &parameters,
+   const double                                             &time_step,
+   const ConstraintMatrix                                   &constraints,
+   Matrix                                                   &system_matrix)
+  {
+    internal_create_system_matrix<dim>
+      (dof_handler, quad, convection_function, parameters, time_step,
+       [&constraints, &system_matrix](auto &local_indices, auto &cell_matrix)
+       {
+         constraints.distribute_local_to_global
+           (cell_matrix, local_indices, system_matrix);
+       });
+  }
+
+  template<int dim, typename Matrix>
+  void create_system_matrix
+  (const DoFHandler<dim>                                    &dof_handler,
+   const QGauss<dim>                                        &quad,
+   const std::function<std::array<double, dim>(Point<dim>)> &convection_function,
+   const CDR::Parameters                                    &parameters,
+   const double                                             &time_step,
+   Matrix                                                   &system_matrix)
+  {
+    internal_create_system_matrix<dim>
+      (dof_handler, quad, convection_function, parameters, time_step,
+       [&system_matrix](auto &local_indices, auto &cell_matrix)
+       {
+         system_matrix.add(local_indices, cell_matrix);
+       });
   }
 }

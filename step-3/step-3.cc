@@ -1,10 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-
 #include <deal.II/base/function_parser.h>
 #include <deal.II/base/quadrature_lib.h>
 
@@ -20,7 +13,6 @@
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/constraint_matrix.h>
 
-#include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/matrix_tools.h>
 
 // for distributed computations
@@ -37,9 +29,18 @@
 
 #include <deal.II/numerics/vector_tools.h>
 
+#include <array>
+#include <functional>
+#include <chrono>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <vector>
+
 #include "../common/system_matrix.h"
 #include "../common/system_rhs.h"
 #include "../common/parameters.h"
+#include "../common/write_pvtu_output.h"
 
 using namespace dealii;
 
@@ -66,12 +67,11 @@ private:
   parallel::distributed::Triangulation<dim> triangulation;
   DoFHandler<dim> dof_handler;
 
+  const std::function<std::array<double, dim>(Point<dim>)> convection_function;
+  const std::function<double(double, Point<dim>)> forcing_function;
+
   IndexSet locally_owned_dofs;
   IndexSet locally_relevant_dofs;
-
-  std::map<std::string, double> parser_constants;
-  FunctionParser<dim> convection_function;
-  FunctionParser<dim> forcing_function;
 
   ConstraintMatrix constraints;
 
@@ -101,26 +101,15 @@ CDRProblem<dim>::CDRProblem(const CDR::Parameters &parameters) :
   triangulation(mpi_communicator, typename Triangulation<dim>::MeshSmoothing
                 (Triangulation<dim>::smoothing_on_refinement |
                  Triangulation<dim>::smoothing_on_coarsening)),
-  convection_function(dim),
-  forcing_function(1)
+  dof_handler(triangulation),
+  convection_function
+    {[](Point<dim> p) -> std::array<double, dim> {return {-p[1], p[0]};}},
+  forcing_function
+    {[](double t, Point<dim> p) -> double
+        {return std::exp(-8*t)*std::exp(-40*Utilities::fixed_power<6>(p[0] - 1.5))
+            *std::exp(-40*Utilities::fixed_power<6>(p[1]));}}
 {
   Assert(dim == 2, ExcNotImplemented());
-  parser_constants["pi"] = numbers::PI;
-  std::vector<std::string> convection_field
-  {
-    parameters.convection_field.substr
-      (0, parameters.convection_field.find_first_of(",")),
-    parameters.convection_field.substr
-      (parameters.convection_field.find_first_of(",") + 1)
-  };
-
-  convection_function.initialize(std::string("x,y"), convection_field,
-                                 parser_constants,
-                                 /*time_dependent=*/false);
-  forcing_function.initialize(std::string("x,y,t"), parameters.forcing,
-                              parser_constants,
-                              /*time_dependent=*/true);
-  forcing_function.set_time(parameters.start_time);
 }
 
 
@@ -136,7 +125,7 @@ void CDRProblem<dim>::setup_geometry()
       cell->set_all_manifold_ids(0);
     }
   triangulation.refine_global(parameters.refinement_level);
-  dof_handler.initialize(triangulation, fe);
+  dof_handler.distribute_dofs(fe);
   locally_owned_dofs = dof_handler.locally_owned_dofs();
   DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
@@ -164,8 +153,9 @@ void CDRProblem<dim>::setup_matrices()
   system_rhs.reinit(locally_owned_dofs, mpi_communicator);
   system_matrix.reinit(locally_owned_dofs, dynamic_sparsity_pattern,
                        mpi_communicator);
-  CDR::create_system_matrix(dof_handler, quad, convection_function, parameters,
-                            time_step, constraints, system_matrix);
+  CDR::create_system_matrix<dim>
+    (dof_handler, quad, convection_function, parameters, time_step, constraints,
+     system_matrix);
   system_matrix.compress(VectorOperation::add);
   preconditioner.initialize(system_matrix);
 }
@@ -181,14 +171,12 @@ void CDRProblem<dim>::time_iterate()
   for (unsigned int time_step_n = 0; time_step_n < parameters.n_time_steps;
        ++time_step_n)
     {
-
       current_time += time_step;
-      forcing_function.advance_time(time_step);
 
       system_rhs = 0.0;
-      CDR::create_system_rhs(dof_handler, quad, convection_function,
-                             forcing_function, parameters,
-                             locally_relevant_solution, constraints, system_rhs);
+      CDR::create_system_rhs<dim>
+        (dof_handler, quad, convection_function, forcing_function, parameters,
+         locally_relevant_solution, constraints, current_time, system_rhs);
       system_rhs.compress(VectorOperation::add);
 
       SolverControl solver_control(dof_handler.n_dofs(),
@@ -254,10 +242,9 @@ int main(int argc, char *argv[])
   CDR::Parameters parameters
   {
     1.0, 2.0,
-    1.0e-3, "-y,x", 1.0e-4, "exp(-2*t)*exp(-40*(x - 1.5)^6)"
-    "*exp(-40*y^6)", true,
-    3, 2,
-    0.0, 2.0, 200,
+    1.0e-3, 1.0e-4, true,
+    7, 2,
+    0.0, 0.1, 20,
     1, 3
   };
   CDRProblem<dim> cdr_problem(parameters);

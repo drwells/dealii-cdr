@@ -1,5 +1,5 @@
-#ifndef __deal2__cdr_1_parameters_h
-#define __deal2__cdr_1_parameters_h
+#ifndef dealii__cdr_parameters_h
+#define dealii__cdr_parameters_h
 
 #include <fstream>
 #include <string>
@@ -17,9 +17,7 @@ namespace CDR
     double outer_radius;
 
     double diffusion_coefficient;
-    std::string convection_field;
     double reaction_coefficient;
-    std::string forcing;
     bool time_dependent_forcing;
 
     unsigned int refinement_level;
