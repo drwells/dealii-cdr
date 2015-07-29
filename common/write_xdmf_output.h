@@ -1,3 +1,5 @@
+#ifndef dealii__cdr_write_xmdf_output_h
+#define dealii__cdr_write_xmdf_output_h
 #include <deal.II/base/data_out_base.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -18,7 +20,7 @@ namespace CDR
   {
   public:
     WriteXDMFOutput(const unsigned int patch_level,
-                    const bool update_mesh_at_each_step);
+                    const bool update_mesh_at_each_step = true);
 
     template<int dim>
     void write_output(const DoFHandler<dim> &dof_handler,
@@ -35,3 +37,4 @@ namespace CDR
     bool write_mesh;
   };
 }
+#endif
