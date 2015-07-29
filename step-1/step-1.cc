@@ -119,7 +119,7 @@ template<int dim>
 void CDRProblem<dim>::time_iterate()
 {
   Vector<double> current_solution(dof_handler.n_dofs());
-  Vector<double> right_hand_side(dof_handler.n_dofs());
+  Vector<double> system_rhs(dof_handler.n_dofs());
 
   double current_time = parameters.start_time;
   CDR::WriteXDMFOutput xdmf_output(parameters.patch_level,
@@ -128,9 +128,8 @@ void CDRProblem<dim>::time_iterate()
        ++time_step_n)
     {
       current_time += time_step;
-      forcing_function.advance_time(time_step);
+      system_rhs = 0.0;
 
-      right_hand_side = 0.0;
       CDR::create_system_rhs<dim>
         (dof_handler, quad, convection_function, forcing_function, parameters,
          current_solution, constraints, current_time, system_rhs);
@@ -140,7 +139,7 @@ void CDRProblem<dim>::time_iterate()
                                    /*log_history = */ false,
                                    /*log_result = */ false);
       SolverGMRES<Vector<double>> solver(solver_control);
-      solver.solve(system_matrix, current_solution, right_hand_side, preconditioner);
+      solver.solve(system_matrix, current_solution, system_rhs, preconditioner);
       constraints.distribute(current_solution);
 
       if (time_step_n % parameters.save_interval == 0)
@@ -149,7 +148,6 @@ void CDRProblem<dim>::time_iterate()
                                    current_time);
         }
 
-      std::cout << time_step_n << std::endl;
     }
 }
 
