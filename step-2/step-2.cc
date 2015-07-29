@@ -155,10 +155,11 @@ void CDRProblem<dim>::time_iterate()
        ++time_step_n)
     {
       current_time += time_step;
-      forcing_function.advance_time(time_step);
 
       SolverControl solver_control(current_solution.size(),
-                                   1e-6*(system_rhs.l2_norm()));
+                                   1e-6*system_rhs.l2_norm(),
+                                   /*log_history = */ false,
+                                   /*log_result = */ false);
       SolverGMRES<Vector<double>> solver(solver_control);
       solver.solve(system_matrix, current_solution, system_rhs, preconditioner);
       constraints.distribute(current_solution);

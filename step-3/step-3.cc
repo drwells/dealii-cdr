@@ -129,7 +129,15 @@ void CDRProblem<dim>::setup_geometry()
   locally_owned_dofs = dof_handler.locally_owned_dofs();
   DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
-  locally_relevant_solution.reinit(locally_relevant_dofs, mpi_communicator);
+  locally_relevant_solution.reinit(locally_owned_dofs, locally_relevant_dofs,
+                                   mpi_communicator);
+
+  if (this_mpi_process == 0)
+    {
+      std::cout << "Number of degrees of freedom: "
+                << dof_handler.n_dofs()
+                << std::endl;
+    }
 }
 
 
@@ -168,6 +176,7 @@ void CDRProblem<dim>::time_iterate()
     (locally_owned_dofs, mpi_communicator);
 
   double current_time = parameters.start_time;
+  CDR::WritePVTUOutput pvtu_output(parameters.patch_level);
   for (unsigned int time_step_n = 0; time_step_n < parameters.n_time_steps;
        ++time_step_n)
     {
@@ -180,7 +189,9 @@ void CDRProblem<dim>::time_iterate()
       system_rhs.compress(VectorOperation::add);
 
       SolverControl solver_control(dof_handler.n_dofs(),
-                                   1e-6*system_rhs.l2_norm());
+                                   1e-6*system_rhs.l2_norm(),
+                                   /*log_history = */ false,
+                                   /*log_result = */ false);
       TrilinosWrappers::SolverGMRES solver(solver_control, mpi_communicator);
       solver.solve(system_matrix, completely_distributed_solution, system_rhs,
                    preconditioner);
@@ -189,35 +200,8 @@ void CDRProblem<dim>::time_iterate()
 
       if (time_step_n % parameters.save_interval == 0)
         {
-          DataOut<dim> data_out;
-          data_out.attach_dof_handler(dof_handler);
-          data_out.add_data_vector(locally_relevant_solution, "u");
-
-          Vector<float> subdomain (triangulation.n_active_cells());
-          for (unsigned int i = 0; i < subdomain.size(); ++i)
-            {
-              subdomain[i] = triangulation.locally_owned_subdomain();
-            }
-          data_out.add_data_vector(subdomain, "subdomain");
-          data_out.build_patches();
-
-          const std::string filename
-          {"solution-" + Utilities::int_to_string(time_step_n) + "."
-              + Utilities::int_to_string(triangulation.locally_owned_subdomain(), 4)};
-          std::ofstream output((filename + ".vtu").c_str());
-          data_out.write_vtu (output);
-
-          if (this_mpi_process == 0)
-            {
-              std::vector<std::string> filenames;
-              for (unsigned int i = 0; i < n_mpi_processes; ++i)
-                filenames.push_back
-                  ("solution-" + Utilities::int_to_string (time_step_n) + "."
-                   + Utilities::int_to_string (i, 4) + ".vtu");
-              std::ofstream master_output
-                ("solution-" + Utilities::int_to_string(time_step_n) + ".pvtu");
-              data_out.write_pvtu_record(master_output, filenames);
-            }
+          pvtu_output.write_output(dof_handler, locally_relevant_solution,
+                                   time_step_n, current_time);
         }
     }
 }

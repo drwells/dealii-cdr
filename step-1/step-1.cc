@@ -135,8 +135,10 @@ void CDRProblem<dim>::time_iterate()
         (dof_handler, quad, convection_function, forcing_function, parameters,
          current_solution, constraints, current_time, system_rhs);
 
-      SolverControl solver_control(current_solution.size(),
-                                   1e-6*right_hand_side.l2_norm());
+      SolverControl solver_control(dof_handler.n_dofs(),
+                                   1e-6*system_rhs.l2_norm(),
+                                   /*log_history = */ false,
+                                   /*log_result = */ false);
       SolverGMRES<Vector<double>> solver(solver_control);
       solver.solve(system_matrix, current_solution, right_hand_side, preconditioner);
       constraints.distribute(current_solution);
