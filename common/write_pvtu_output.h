@@ -21,8 +21,7 @@ namespace CDR
   class WritePVTUOutput
   {
   public:
-    WritePVTUOutput(const unsigned int patch_level,
-                    const unsigned int locally_owned_subdomain = 0);
+    WritePVTUOutput(const unsigned int patch_level);
 
     template<int dim, typename VectorType>
     void write_output(const DoFHandler<dim> &dof_handler,
@@ -31,9 +30,6 @@ namespace CDR
                       const double          &current_time);
   private:
     const unsigned int patch_level;
-    const std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    data_component_interpretation;
-    const unsigned int locally_owned_subdomain;
     const unsigned int this_mpi_process;
   };
 }

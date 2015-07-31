@@ -6,12 +6,8 @@ namespace CDR
 {
   using namespace dealii;
 
-  WritePVTUOutput::WritePVTUOutput(const unsigned int patch_level,
-                                   const unsigned int locally_owned_subdomain)
+  WritePVTUOutput::WritePVTUOutput(const unsigned int patch_level)
     : patch_level {patch_level},
-      data_component_interpretation
-      {DataComponentInterpretation::component_is_scalar},
-      locally_owned_subdomain {locally_owned_subdomain},
       this_mpi_process {Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)}
   {}
 

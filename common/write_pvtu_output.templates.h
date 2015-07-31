@@ -19,8 +19,7 @@ namespace CDR
   {
     DataOut<dim> data_out;
     data_out.attach_dof_handler(dof_handler);
-    data_out.add_data_vector(solution, "u", DataOut<dim>::type_dof_data,
-                             data_component_interpretation);
+    data_out.add_data_vector(solution, "u");
 
     Vector<float> subdomain (dof_handler.get_tria().n_active_cells());
     for (auto &domain : subdomain)
@@ -35,9 +34,19 @@ namespace CDR
     flags.compression_level = DataOutBase::VtkFlags::ZlibCompressionLevel::best_speed;
     data_out.set_flags(flags);
 
+    unsigned int subdomain_n;
+    if (Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) == 1)
+      {
+        subdomain_n = 0;
+      }
+    else
+      {
+        subdomain_n = dof_handler.get_tria().locally_owned_subdomain();
+      }
+
     std::ofstream output
       ("solution-" + Utilities::int_to_string(time_step_n) + "."
-       + Utilities::int_to_string(locally_owned_subdomain, 4)
+       + Utilities::int_to_string(subdomain_n, 4)
        + ".vtu");
 
     data_out.write_vtu(output);
