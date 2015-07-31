@@ -101,7 +101,6 @@ CDRProblem<dim>::CDRProblem(const CDR::Parameters &parameters) :
   triangulation(mpi_communicator, typename Triangulation<dim>::MeshSmoothing
                 (Triangulation<dim>::smoothing_on_refinement |
                  Triangulation<dim>::smoothing_on_coarsening)),
-  dof_handler(triangulation),
   convection_function
     {[](Point<dim> p) -> std::array<double, dim> {return {-p[1], p[0]};}},
   forcing_function
@@ -125,7 +124,7 @@ void CDRProblem<dim>::setup_geometry()
       cell->set_all_manifold_ids(0);
     }
   triangulation.refine_global(parameters.refinement_level);
-  dof_handler.distribute_dofs(fe);
+  dof_handler.initialize(triangulation, fe);
   locally_owned_dofs = dof_handler.locally_owned_dofs();
   DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 

@@ -44,6 +44,7 @@ public:
 private:
   const CDR::Parameters parameters;
   const double time_step;
+  double current_time;
 
   FE_Q<dim> fe;
   QGauss<dim> quad;
@@ -74,6 +75,7 @@ CDRProblem<dim>::CDRProblem(const CDR::Parameters &parameters) :
   parameters(parameters),
   time_step {(parameters.stop_time - parameters.start_time)
     /parameters.n_time_steps},
+  current_time {parameters.start_time},
   fe(parameters.fe_order),
   quad(3*(2 + parameters.fe_order)/2),
   boundary_description(Point<dim>(true)),
@@ -138,7 +140,7 @@ void CDRProblem<dim>::setup_system()
   // depends on dim.
   CDR::assemble_system<dim>
     (dof_handler, quad, convection_function, forcing_function, parameters,
-     current_solution, constraints, system_matrix, system_rhs);
+     current_solution, constraints, current_time, system_matrix, system_rhs);
   preconditioner.initialize(system_matrix);
 }
 
@@ -146,8 +148,6 @@ void CDRProblem<dim>::setup_system()
 template<int dim>
 void CDRProblem<dim>::time_iterate()
 {
-  double current_time = parameters.start_time;
-
   CDR::WritePVTUOutput pvtu_output(parameters.patch_level);
 
   for (unsigned int time_step_n = 0; time_step_n < parameters.n_time_steps;
