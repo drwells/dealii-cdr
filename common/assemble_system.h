@@ -27,6 +27,7 @@ namespace CDR
    const CDR::Parameters                                    &parameters,
    const VectorType                                         &current_solution,
    const ConstraintMatrix                                   &constraints,
+   const double                                             current_time,
    MatrixType                                               &system_matrix,
    VectorType                                               &system_rhs);
 }

@@ -19,6 +19,7 @@ namespace CDR
    const CDR::Parameters                                    &parameters,
    const VectorType                                         &current_solution,
    const ConstraintMatrix                                   &constraints,
+   const double                                             current_time,
    MatrixType                                               &system_matrix,
    VectorType                                               &system_rhs)
   {
@@ -35,8 +36,7 @@ namespace CDR
     Vector<double> current_fe_coefficients(dofs_per_cell);
     std::vector<types::global_dof_index> local_indices(dofs_per_cell);
 
-    const double current_time {0.0};
-    const double previous_time {current_time - time_step};
+    auto previous_time {current_time - time_step};
 
     for (const auto &cell : dof_handler.active_cell_iterators())
       {
