@@ -22,7 +22,7 @@ namespace CDR
    const CDR::Parameters                                    &parameters,
    const VectorType                                         &previous_solution,
    const ConstraintMatrix                                   &constraints,
-   const double                                             current_time,
+   const double                                             &current_time,
    VectorType                                               &system_rhs)
   {
     auto &fe = dof_handler.get_fe();

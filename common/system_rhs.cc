@@ -16,7 +16,7 @@ namespace CDR
    const CDR::Parameters                                &parameters,
    const Vector<double>                                 &previous_solution,
    const ConstraintMatrix                               &constraints,
-   const double                                         current_time,
+   const double                                         &current_time,
    Vector<double>                                       &system_rhs);
 
   template
@@ -28,7 +28,7 @@ namespace CDR
    const CDR::Parameters                                &parameters,
    const Vector<double>                                 &previous_solution,
    const ConstraintMatrix                               &constraints,
-   const double                                         current_time,
+   const double                                         &current_time,
    Vector<double>                                       &system_rhs);
 
   template
@@ -40,7 +40,7 @@ namespace CDR
    const CDR::Parameters                                &parameters,
    const TrilinosWrappers::MPI::Vector                  &previous_solution,
    const ConstraintMatrix                               &constraints,
-   const double                                         current_time,
+   const double                                         &current_time,
    TrilinosWrappers::MPI::Vector                        &system_rhs);
 
   template
@@ -52,6 +52,6 @@ namespace CDR
    const CDR::Parameters                                &parameters,
    const TrilinosWrappers::MPI::Vector                  &previous_solution,
    const ConstraintMatrix                               &constraints,
-   const double                                         current_time,
+   const double                                         &current_time,
    TrilinosWrappers::MPI::Vector                        &system_rhs);
 }
