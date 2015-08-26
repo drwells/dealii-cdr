@@ -22,9 +22,9 @@ namespace CDR
     WriteXDMFOutput(const unsigned int patch_level,
                     const bool update_mesh_at_each_step = true);
 
-    template<int dim>
+    template<int dim, typename VectorType>
     void write_output(const DoFHandler<dim> &dof_handler,
-                      const Vector<double>  &solution,
+                      const VectorType      &solution,
                       const unsigned int    &time_step_n,
                       const double          &current_time);
   private:

@@ -8,9 +8,9 @@
 
 namespace CDR
 {
-  template<int dim>
+  template<int dim, typename VectorType>
   void WriteXDMFOutput::write_output(const DoFHandler<dim> &dof_handler,
-                                     const Vector<double>  &solution,
+                                     const VectorType      &solution,
                                      const unsigned int    &time_step_n,
                                      const double          &current_time)
   {
