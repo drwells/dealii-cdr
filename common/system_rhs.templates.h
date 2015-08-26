@@ -30,7 +30,6 @@ namespace CDR
     FEValues<dim> fe_values(fe, quad, update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
 
-
     Vector<double> cell_rhs(dofs_per_cell);
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
 
@@ -71,6 +70,7 @@ namespace CDR
                               current_convection[dim_n]
                               * fe_values.shape_grad(j, q)[dim_n];
                           }
+
                         cell_rhs(i) += fe_values.JxW(q)*
                           // mass and reaction part
                           (((1.0 - time_step/2.0*parameters.reaction_coefficient)

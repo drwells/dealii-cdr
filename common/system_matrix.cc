@@ -65,7 +65,6 @@ namespace CDR
      const double                                         &time_step,
      TrilinosWrappers::SparseMatrix                       &system_matrix);
 
-
   template
   void create_system_matrix<2, TrilinosWrappers::SparseMatrix>
     (const DoFHandler<2>                                  &dof_handler,
