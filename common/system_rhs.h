@@ -1,7 +1,6 @@
 #ifndef dealii__cdr_system_rhs_h
 #define dealii__cdr_system_rhs_h
 #include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/function_parser.h>
 
 #include <deal.II/dofs/dof_handler.h>
 

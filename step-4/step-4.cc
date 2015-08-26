@@ -34,9 +34,7 @@
 #include <array>
 #include <functional>
 #include <chrono>
-#include <fstream>
 #include <iostream>
-#include <memory>
 #include <vector>
 
 #include "../common/system_matrix.h"

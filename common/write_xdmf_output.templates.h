@@ -1,13 +1,8 @@
 #include <deal.II/base/utilities.h>
 
-#include <deal.II/lac/vector.h>
-
 #include <deal.II/numerics/data_out.h>
 
 #include "write_xdmf_output.h"
-
-#include <string>
-#include <vector>
 
 namespace CDR
 {
