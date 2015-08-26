@@ -237,23 +237,17 @@ void CDRProblem<dim>::refine_mesh()
      locally_relevant_solution, estimated_error_per_cell);
 
   // Poor man's version of refine and coarsen
-  bool coarsened {false};
-  bool refined {false};
   for (const auto &cell : triangulation.active_cell_iterators())
     {
       if (std::abs(estimated_error_per_cell[cell->active_cell_index()]) >= 1e-3)
         {
           cell->set_refine_flag();
-          refined = true;
         }
       else if (std::abs(estimated_error_per_cell[cell->active_cell_index()]) <= 1e-5)
         {
           cell->set_coarsen_flag();
-          coarsened = true;
         }
     }
-  std::cout << "[" << this_mpi_process << "] coarsened status is " << coarsened << std::endl;
-  std::cout << "[" << this_mpi_process << "] refined status is " << refined << std::endl;
 
   // TODO make max_refinement_level a parameter
   if (triangulation.n_levels() > parameters.refinement_level)
@@ -276,7 +270,7 @@ void CDRProblem<dim>::refine_mesh()
     (locally_owned_dofs, mpi_communicator);
   solution_transfer.interpolate(temporary);
   locally_relevant_solution = temporary;
-  // constraints.distribute(locally_relevant_solution); // ????? This causes exceptions for np > 1
+  constraints.distribute(locally_relevant_solution);
   setup_system();
 }
 
