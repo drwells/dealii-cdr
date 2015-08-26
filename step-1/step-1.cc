@@ -30,6 +30,9 @@
 
 using namespace dealii;
 
+constexpr int manifold_id {0};
+
+
 template<int dim>
 class CDRProblem
 {
@@ -86,7 +89,7 @@ void CDRProblem<dim>::setup_geometry()
   const Point<dim> center(true);
   GridGenerator::hyper_shell(triangulation, center, parameters.inner_radius,
                              parameters.outer_radius);
-  triangulation.set_manifold(0, boundary_description);
+  triangulation.set_manifold(manifold_id, boundary_description);
   for (const auto &cell : triangulation.active_cell_iterators())
     {
       cell->set_all_manifold_ids(0);
