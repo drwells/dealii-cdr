@@ -171,11 +171,12 @@ int main(int argc, char *argv[])
     (argc, argv, numbers::invalid_unsigned_int);
   CDR::Parameters parameters
   {
-    1.0, 2.0,
-    1.0e-3, 1.0e-4, true,
-    4, 2,
-    0.0, 0.1, 100,
-    1, 3
+    1.0, 2.0, // inner and outer radii
+    1.0e-3, 1.0e-4, // diffusion and reaction coefficient
+    true, // use time dependent forcing
+    4, 2, // default refinement level, fe order
+    0.0, 2, 2000, // start time, stop time, time steps
+    1, 3 // save interval, patch level
   };
   CDRProblem<dim> cdr_problem(parameters);
   cdr_problem.run();
