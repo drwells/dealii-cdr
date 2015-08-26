@@ -1,6 +1,6 @@
 SET(TARGET "step-4")
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -std=c++11 -fmax-errors=1")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -fmax-errors=1")
 
 SET(TARGET_SRC ${TARGET}.cc)
 
