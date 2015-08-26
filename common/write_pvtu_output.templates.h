@@ -15,6 +15,8 @@
 
 namespace CDR
 {
+  using namespace dealii;
+
   template<int dim, typename VectorType>
   void WritePVTUOutput::write_output(const DoFHandler<dim> &dof_handler,
                                      const VectorType      &solution,
