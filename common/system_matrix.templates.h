@@ -1,3 +1,5 @@
+#ifndef dealii__cdr_system_matrix_templates_h
+#define dealii__cdr_system_matrix_templates_h
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
 
@@ -105,3 +107,4 @@ namespace CDR
        });
   }
 }
+#endif

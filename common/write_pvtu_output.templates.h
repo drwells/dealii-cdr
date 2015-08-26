@@ -1,3 +1,5 @@
+#ifndef dealii__cdr_write_pvtu_output_templates_h
+#define dealii__cdr_write_pvtu_output_templates_h
 #include <deal.II/base/data_out_base.h>
 #include <deal.II/base/utilities.h>
 
@@ -67,3 +69,4 @@ namespace CDR
       }
   }
 }
+#endif

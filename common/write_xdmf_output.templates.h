@@ -1,3 +1,5 @@
+#ifndef dealii__cdr_write_xmdf_output_templates_h
+#define dealii__cdr_write_xmdf_output_templates_h
 #include <deal.II/base/utilities.h>
 
 #include <deal.II/numerics/data_out.h>
@@ -47,3 +49,4 @@ namespace CDR
     data_out.write_xdmf_file(xdmf_entries, xdmf_file_name, MPI_COMM_WORLD);
   }
 }
+#endif
